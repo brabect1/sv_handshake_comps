@@ -1,7 +1,7 @@
 Handshake Protocols
 ===================
 
-This work is licensed under a [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/).
+This document is licensed under a [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/).
 ![cc_license_logo](https://i.creativecommons.org/l/by/4.0/88x31.png "CC License Logo")
 
 A *handshake protocol* or simply a *handshake* in digital circuits is a set of control signals and
