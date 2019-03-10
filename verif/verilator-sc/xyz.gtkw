@@ -1,0 +1,81 @@
+[*]
+[*] GTKWave Analyzer v3.3.86 (w)1999-2017 BSI
+[*] Sat Mar  2 14:12:41 2019
+[*]
+[dumpfile] "/tmp/github/handshake/verif/verilator-sc/dump.vcd"
+[dumpfile_mtime] "Sat Mar  2 13:58:23 2019"
+[dumpfile_size] 5082
+[savefile] "/tmp/github/handshake/verif/verilator-sc/xyz.gtkw"
+[timestart] 0
+[size] 1366 713
+[pos] -174 -62
+*-16.000000 63000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] top.
+[treeopen] top.wrap.
+[sst_width] 202
+[signals_width] 232
+[sst_expanded] 1
+[sst_vpaned_height] 187
+@28
+top.wrap.clk
+top.wrap.rst_n
+@22
+top.wrap.pull_dat[31:0]
+@28
+top.wrap.pull_pop
+top.wrap.pull_rdy
+top.wrap.first_rdy
+top.wrap.second_rdy
+top.wrap.second_vld
+@22
+top.wrap.second_dat[31:0]
+@28
+top.wrap.third_rdy
+top.wrap.third_vld
+@22
+top.wrap.third_dat[31:0]
+@28
+top.wrap.forth_ack
+top.wrap.forth_req
+@22
+top.wrap.forth_dat[31:0]
+@28
+top.wrap.fifth_ack
+@22
+top.wrap.fifth_dat[31:0]
+@28
+top.wrap.fifth_req
+top.wrap.seventh_vld
+top.wrap.sixth_ack
+@22
+top.wrap.sixth_dat[31:0]
+@28
+top.wrap.sixth_req
+@22
+top.wrap.push_dat[31:0]
+@28
+top.wrap.push_push
+top.wrap.push_rdy
+@200
+-3rd
+@28
+top.wrap.u_third.ack
+top.wrap.u_third.ack_accept
+top.wrap.u_third.ack_d
+top.wrap.u_third.ack_fall
+top.wrap.u_third.ack_i
+top.wrap.u_third.clk
+@22
+top.wrap.u_third.i_dat[31:0]
+top.wrap.u_third.o_dat[31:0]
+@28
+top.wrap.u_third.rdy
+top.wrap.u_third.vld
+top.wrap.u_third.rdy_ff
+@29
+top.wrap.u_third.req
+@28
+top.wrap.u_third.req_accept
+top.wrap.u_third.rst_n
+[pattern_trace] 1
+[pattern_trace] 0
