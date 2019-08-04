@@ -60,7 +60,6 @@ module reqack_tph_pipe_stage #(
 logic req_accept;
 
 logic req_i;
-logic req_d;
 logic ack_nxt_i;
 
 if (INCLUDE_CDC_PRV) begin: g_cdc_prv
@@ -102,7 +101,7 @@ end: g_no_cdc_nxt
 // stage). The new request can be accepted only when the next stage has
 // acknowledged the output request (i.e. the next stage acknowledge is
 // at the same level as the next stage request output).
-assign req_accept = (req_i ^ req_nxt) & ~(req_nxt ^ ~ack_nxt_i);
+assign req_accept = (req_i ^ req_nxt) & (req_nxt ^ ~ack_nxt_i);
 
 // Implements the Request forwarding to the next stage.
 always_ff @(posedge clk or negedge rst_n) begin: p_req_nxt
