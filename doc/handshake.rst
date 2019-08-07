@@ -1,8 +1,10 @@
 Handshake Protocols
 ===================
 
-This document is licensed under a [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/).
-![cc_license_logo](https://i.creativecommons.org/l/by/4.0/88x31.png "CC License Logo")
+This document is licensed under a `Creative Commons Attribution 4.0 International License <http://creativecommons.org/licenses/by/4.0/>`_ |cc_by_40_logo|.
+
+.. |cc_by_40_logo| image:: https://i.creativecommons.org/l/by/4.0/88x31.png
+  :alt: CC BY 4.0
 
 A *handshake protocol* or simply a *handshake* in digital circuits is a set of control signals and
 definition of their interaction to pass data from a producer to a consumer.
@@ -55,10 +57,12 @@ decrease the protocol throughput to at least two clocks per data transfer.
 An example is shown on the following pipeline stage, where both the input and output
 side implement the Ready--Valid handshake.
 
-![rdyval_pipe_stage](png/rdyval_pipe_stage.png)
+.. figure:: png/rdyval_pipe_stage.png
+
+   Pipeline stage of a Ready--Valid handshake.
 
 Notice that the implementation is such that all output control signals (i.e.
-`i_rdy` and `o_vld`) originate from a flop internal to the module. This makes
+``i_rdy`` and ``o_vld``) originate from a flop internal to the module. This makes
 sure to split a combinational path that might have otherwise gone through the
 pipeline stage.
 
@@ -82,7 +86,9 @@ The circuit below shows an example of a pipeline stage for the four phase
 handshake. Again, each of the output control signals originates from a flop
 to split signal paths going through the pipeline stage.
 
-![reqack_pipe_stage](png/reqack_pipe_stage.png)
+.. figure:: png/reqack_pipe_stage.png
+
+   Pipeline stage of a four-phase Request--Acknowledge handshake.
 
 Comparing the Schemes
 ---------------------
@@ -107,15 +113,21 @@ Due to their different properties, designers may choose to combine both schemes
 in the design and hence would need to convert from one to the other. The following
 circuits provide such conversion.
 
-![rdyval_to_reqack](png/rdyval2reqack.png)
-![reqack_to_rdyval](png/reqack2rdyval.png)
+.. figure:: png/rdyval2reqack.png
+
+   Conversion from a Ready--Valid handshake to a four-phase Request-Acknowledge handshake.
+
+.. figure:: png/reqack2rdyval.png
+
+   Conversion from a four-phase Request-Acknowledge handshake to a Ready--Valid handshake.
 
 Variances
 ---------
 
 There can be variances of the two schemes introduced above.
 
-### Valid--Ready Handshake ###
+Valid--Ready Handshake
+~~~~~~~~~~~~~~~~~~~~~~
 
 The Ready--Valid scheme represented by the pipeline stage circuitry above is
 a *push* type in the sense that *Ready* foreruns *Valid*. This is a part of
@@ -129,9 +141,12 @@ stage is shown below.
 
 Note that the pull type and push type pipeline stages cannot be combined.
 
-![valrdy_pipe_stage](png/valrdy_pipe_stage.png)
+.. figure:: png/valrdy_pipe_stage.png
 
-### Request--Acknowledge Strobe Handshake ###
+   Pipeline stage of a Valid--Ready handshake protocol.
+
+Request--Acknowledge Strobe Handshake
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 A variant of a two phase Request--Acknowledge handshake is a form where both
 the request and acknowledge events are represented by single cycle strobes.
