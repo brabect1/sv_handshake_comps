@@ -101,7 +101,7 @@ initial begin: p_test
     $display("%0t: Setting rst_n=%0b", $realtime, rst_n);
     repeat (2) @(posedge clk);
 
-    // check expecte outputs
+    // check expected outputs
     err = test_pkg::check( "ack", ack, 1'b0);
     err = test_pkg::check("req_nxt", req_nxt, 1'b0);
 
@@ -112,7 +112,7 @@ initial begin: p_test
     $display("%0t: Setting rst_n=%0b", $realtime, rst_n);
     repeat (2) @(posedge clk);
 
-    // check expecte outputs
+    // check expected outputs
     test_pkg::check( "ack", ack, 1'b0);
     test_pkg::check("req_nxt", req_nxt, 1'b0);
 
@@ -139,7 +139,7 @@ initial begin: p_test
             tstamp = $realtime;
             #(CTO_TIME);
             test_pkg::check("ack", ack, req);
-            test_pkg::check("req_nxt", ack, req);
+            test_pkg::check("req_nxt", req_nxt, req);
             check_data("o_dat", o_dat, data);
         end
 
@@ -269,7 +269,7 @@ initial begin: p_test
         #(CTO_TIME);
     end
     test_pkg::check("ack", ack, req);
-    test_pkg::check("req_nxt", ack, req);
+    test_pkg::check("req_nxt", req_nxt, req);
 
     // stop clocks
     test_done = 1'b1;
