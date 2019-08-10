@@ -98,7 +98,7 @@ initial begin: p_test
     repeat (2) @(posedge clk);
 
     // check expected outputs
-    err = test_pkg::check( "ack", ack, 1'b0);
+    err = test_pkg::check("ack", ack, 1'b0);
     err = test_pkg::check("vld", vld, 1'b0);
 
     // Remove reset
@@ -109,7 +109,7 @@ initial begin: p_test
     repeat (2) @(posedge clk);
 
     // check expected outputs
-    err = test_pkg::check( "ack", ack, 1'b0);
+    err = test_pkg::check("ack", ack, 1'b0);
     err = test_pkg::check("vld", vld, 1'b0);
 
     // Testcase: tc_handshake
@@ -130,7 +130,7 @@ initial begin: p_test
         assert( std::randomize( data ) );
         drive_data("i_dat", i_dat, data);
         test_pkg::drive("req", req, ~req);
-        drive_data("rdy", rdy, 1'b1);
+        test_pkg::drive("rdy", rdy, 1'b1);
 
         // check ACK and VAL response
         begin
@@ -152,7 +152,167 @@ initial begin: p_test
 
     end
 
+
+    // Testcase: tc_delayed_responses
+    // ------------------------------
+    // In this test case we control each side of DUT independently.
+    // There are random (i.e. few clock cycles) delays between new
+    // requests and readiness at input and output side, respectively.
+    test_pkg::header( "tc_delayed_responses" );
+    fork
+        semaphore smScoreBoard = new(1);
+        logic[DWIDTH-1:0] scoreBoard[$];
+        bit input_done = 1'b0;
+
+        // input side (generates data and requests its passing to
+        // the other side)
+        begin
+            int ticks;
+            logic[DWIDTH-1:0] data;
+            bit err;
+
+            // make sure there is no pending request at the input
+            assert( test_pkg::check( "ack", ack, req ) );
+            @(posedge clk);
+
+            for (int i=0; i < 10; i++) begin
+                // randomize next request time
+                assert( std::randomize( ticks, data ) with { ticks inside{[0:3]}; } );
+                smScoreBoard.get();
+                scoreBoard.push_back(data);
+                smScoreBoard.put();
+
+                // drive new data
+                if (ticks > 0) repeat(ticks) @(posedge clk);
+                #(HOLD_TIME);
+                drive_data("i_dat", i_dat, data);
+                test_pkg::drive("req", req, ~req);
+
+                // wait for acknowledge
+                fork
+                    @(ack iff ack === req);
+                    begin
+                        #(10*CLK_PERIOD);
+                        err = 1;
+                    end
+                join_any
+                disable fork;
+                test_pkg::check( "ack", ack, req );
+                if (err) break;
+            end
+
+            input_done = 1'b1;
+        end
+
+        // output side (reacts to new validity and de-asserts ready for
+        // a random number of cycles)
+        begin
+            int ticks;
+            logic[DWIDTH-1:0] data;
+            bit err;
+            int i;
+
+            while (1) begin
+                // wait for new data on the output
+                err = 0;
+                fork
+                    @(posedge clk iff vld === 1'b1);
+                    begin
+                        #(10*CLK_PERIOD);
+                        err = 1;
+                    end
+                join_any
+                disable fork;
+                if (err && input_done) break; // input done and VLD timeout
+                test_pkg::check( "vld", vld, 1'b1 );
+                if (err) break;
+
+                // check data
+                smScoreBoard.get();
+                if (scoreBoard.size() == 0) begin
+                    $error("%0t: Output side signalled new request but no data expected!", $realtime);
+                end
+                else begin
+                    data = scoreBoard.pop_front();
+                    check_data("o_dat", o_dat, data);
+                end
+                smScoreBoard.put();
+
+                // if input side completed, this should have been the last
+                // received data
+                if (input_done) break;
+
+                // respond with de-asserting RDY for a random number
+                // of cycles
+                assert( std::randomize( ticks ) with { ticks inside{[0:3]}; } );
+                if (ticks > 0) begin
+                    test_pkg::drive("rdy", rdy, 1'b0);
+                    repeat(ticks) @(posedge clk);
+                    #(HOLD_TIME);
+                end
+                test_pkg::drive("rdy", rdy, 1'b1);
+            end
+
+            // check we received all generated data
+            smScoreBoard.get();
+            if (scoreBoard.size() > 0) begin
+                $error("%0t: Output side missed %0d data records!", $realtime, scoreBoard.size());
+            end
+            smScoreBoard.put();
+        end
+    join
+
+
+    // Testcase: tc_reset (Reset test)
+    // -------------------------------
+    begin
+        realtime tstamp;
+
+        repeat(10) @(posedge clk);
+        tstamp = $realtime;
+        test_pkg::header( "tc_reset" );
+
+        // make `ack` and `vld` outputs change to a non-reset value
+        // (We put DUT into a state where `ack` is low. Than remove
+        // `rdy` and handshake another request. This would yield both
+        // `ack` and `vld` go to log.1.)
+        if (ack !== 1'b0) begin
+            @(posedge clk);
+            #(HOLD_TIME);
+            test_pkg::drive("req", req, ~req);
+
+            repeat(1) @(posedge clk);
+            tstamp = $realtime;
+            #(CTO_TIME);
+            test_pkg::check("ack", ack, 1'b0);
+        end
+        tstamp = HOLD_TIME - ($realtime - tstamp);
+        if (tstamp > 0ns) #(tstamp);
+        test_pkg::drive("rdy", rdy, 1'b0);
+        test_pkg::drive("req", req, ~req);
+        repeat(1) @(posedge clk);
+        #(CTO_TIME);
+
+        test_pkg::check("ack", ack, 1'b1);
+        test_pkg::check("vld", vld, 1'b1);
+
+        // stop clocks
+        test_done = 1'b1;
+        #(4*CLK_PERIOD);
+
+        // assert reset
+        rst_n = 1'b0;
+        $display("%0t: Setting rst_n=%0b", $realtime, rst_n);
+        #(CTO_TIME);
+
+        // check outputs changed to reset value
+        err = test_pkg::check("ack", ack, 1'b0);
+        err = test_pkg::check("vld", vld, 1'b0);
+    end
+
+
     // end of the test
+    #(CLK_PERIOD);
     test_done = 1'b1;
    $display("============\nTest finished\n============");
 end: p_test

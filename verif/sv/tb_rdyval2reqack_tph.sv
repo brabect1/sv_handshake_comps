@@ -1,17 +1,14 @@
-module tb_reqack_tph_pipe_stage #(
+module tb_rdyval2reqack_tph #(
     // Data path bit width
     parameter int DWIDTH = 1,
     // When set, CDC flops will be instantiated on the previous stage handshake
     // interface (i.e. Request input).
-    parameter bit INCLUDE_CDC_PRV = 1'b0,
-    // When set, CDC flops will be instantiated on the next stage handshake
-    // interface (i.e. next stage Acknowledge input).
-    parameter bit INCLUDE_CDC_NXT = 1'b0,
+    parameter bit INCLUDE_CDC = 1'b0,
     // Clock period.
     parameter realtime CLK_PERIOD = 10ns,
     // Time after clock rise when to change DUT inputs.
     parameter realtime HOLD_TIME  = CLK_PERIOD/10,
-    // Max time after clock rise when to expect valid DUT outputs.
+    // Max time after clock rise when to expect vldid DUT outputs.
     parameter realtime CTO_TIME = CLK_PERIOD/5
 );
 
@@ -19,12 +16,12 @@ bit test_done = 1'b1;
 logic rst_n;
 logic clk = 1'b0;
 
-logic req;
-logic ack;
+logic rdy;
+logic vld;
 logic [DWIDTH-1:0] i_dat;
 
-logic req_nxt;
-logic ack_nxt;
+logic req;
+logic ack;
 logic [DWIDTH-1:0] o_dat;
 
 
@@ -65,10 +62,9 @@ function automatic bit check_data(
 endfunction: check_data
 
 
-reqack_tph_pipe_stage #(
+rdyval2reqack_tph #(
     .DWIDTH(DWIDTH),
-    .INCLUDE_CDC_PRV(INCLUDE_CDC_PRV),
-    .INCLUDE_CDC_NXT(INCLUDE_CDC_NXT)
+    .INCLUDE_CDC(INCLUDE_CDC)
 ) dut ( .* );
 
 
@@ -92,8 +88,8 @@ initial begin: p_test
 
     // start of the test
     test_done = 1'b0;
-    req = 1'b0;
-    ack_nxt = 1'b0;
+    vld = 1'b0;
+    ack = 1'b0;
 
     // Assert reset
     // ------------
@@ -102,8 +98,8 @@ initial begin: p_test
     repeat (2) @(posedge clk);
 
     // check expected outputs
-    err = test_pkg::check( "ack", ack, 1'b0);
-    err = test_pkg::check("req_nxt", req_nxt, 1'b0);
+    err = test_pkg::check( "rdy", rdy, 1'b1);
+    err = test_pkg::check( "req", req, 1'b0);
 
     // Remove reset
     // ------------
@@ -113,9 +109,11 @@ initial begin: p_test
     repeat (2) @(posedge clk);
 
     // check expected outputs
-    test_pkg::check( "ack", ack, 1'b0);
-    test_pkg::check("req_nxt", req_nxt, 1'b0);
+    err = test_pkg::check( "rdy", rdy, 1'b1);
+    err = test_pkg::check( "req", req, 1'b0);
 
+    // Testcase: tc_handshake
+    // ----------------------
     // In this test case we do handshake on the input interface,
     // then complete the handshake on the output interface. This
     // way we know that after test case completion DUT shall be
@@ -131,23 +129,34 @@ initial begin: p_test
         #(HOLD_TIME);
         assert( std::randomize( data ) );
         drive_data("i_dat", i_dat, data);
-        test_pkg::drive("req", req, ~req);
+        test_pkg::drive("vld", vld, 1'b1);
 
-        // check ACK and REQ_NXT response
+        // check RDY and REQ response
         begin
             repeat(1) @(posedge clk);
             tstamp = $realtime;
-            #(CTO_TIME);
-            test_pkg::check("ack", ack, req);
-            test_pkg::check("req_nxt", req_nxt, req);
-            check_data("o_dat", o_dat, data);
+            fork
+                begin
+                    #(CTO_TIME);
+                    test_pkg::check("rdy", rdy, 1'b0);
+                    test_pkg::check("req", req, ~ack);
+                    check_data("o_dat", o_dat, data);
+                end
+                begin
+                    #(HOLD_TIME);
+                    test_pkg::drive("vld", vld, 1'b0);
+                end
+            join
         end
 
         // complete the handshake on the output side
-        if (req_nxt !== ack_nxt) begin
-            tstamp = $realtime - (tstamp + HOLD_TIME);
-            if (tstamp > 0ns) #(tstamp);
-            ack_nxt = req_nxt;
+        // (as we keep RDY asserted, VAL shall de-assert one clock later)
+        if (req !== ack) begin
+            test_pkg::drive("ack", ack, ~ack);
+            @(posedge clk);
+            #(CTO_TIME);
+            test_pkg::check("req", req, ack);
+            test_pkg::check("rdy", rdy, 1'b1);
         end
 
     end
@@ -156,9 +165,6 @@ initial begin: p_test
     // Testcase: tc_delayed_responses
     // ------------------------------
     // In this test case we control each side of DUT independently.
-    // There are random (i.e. few clock cycles) delays between
-    // new requests and acknowledgements at input and output side,
-    // respectively.
     test_pkg::header( "tc_delayed_responses" );
     fork
         semaphore smScoreBoard = new(1);
@@ -171,37 +177,56 @@ initial begin: p_test
             int ticks;
             logic[DWIDTH-1:0] data;
             bit err;
+            realtime tstamp;
 
-            // make sure there is no pending request at the input
-//            err = test_pkg::check( "ack", ack, req );
-//            $display(">>>> ret=%0b", err);
-            assert( test_pkg::check( "ack", ack, req ) );
+            // make sure the input side is ready
+            assert( test_pkg::check( "rdy", rdy, 1'b1 ) );
             @(posedge clk);
+            #(HOLD_TIME);
 
             for (int i=0; i < 10; i++) begin
-                // randomize next request time
+                // randomize next valid time
                 assert( std::randomize( ticks, data ) with { ticks inside{[0:3]}; } );
                 smScoreBoard.get();
                 scoreBoard.push_back(data);
                 smScoreBoard.put();
 
                 // drive new data
-                if (ticks > 0) repeat(ticks) @(posedge clk);
-                #(HOLD_TIME);
+                if (ticks > 0) begin
+                    repeat(ticks) @(posedge clk);
+                    #(HOLD_TIME);
+                end
                 drive_data("i_dat", i_dat, data);
-                test_pkg::drive("req", req, ~req);
+                test_pkg::drive("vld", vld, 1'b1);
 
-                // wait for acknowledge
+                // wait for RDY response
+                @(posedge clk);
+                tstamp = $realtime;
                 fork
-                    @(ack iff ack === req);
+                    begin
+                        #(HOLD_TIME);
+                        drive_data("i_dat", i_dat, ~data);
+                        test_pkg::drive("vld", vld, 1'b0);
+                    end
+                join_none
+                #(CTO_TIME);
+
+                // wait for next RDY
+                fork
+                    if (rdy !== 1'b1) @(rdy iff rdy === 1'b1);
                     begin
                         #(10*CLK_PERIOD);
                         err = 1;
                     end
                 join_any
                 disable fork;
-                test_pkg::check( "ack", ack, req );
+                test_pkg::check( "rdy", rdy, 1'b1);
                 if (err) break;
+
+                // wait long enough so that potential VLD assertion
+                // cannot violate timing requirements
+                tstamp = HOLD_TIME - ($realtime - tstamp);
+                if (tstamp > 0ns) #(tstamp);
             end
 
             input_done = 1'b1;
@@ -219,7 +244,7 @@ initial begin: p_test
                 // wait for next request on the output
                 err = 0;
                 fork
-                    @(req_nxt iff req_nxt === ~ack_nxt or posedge input_done);
+                    @(req iff req === ~ack or posedge input_done);
                     begin
                         #(10*CLK_PERIOD);
                         err = 1;
@@ -227,7 +252,7 @@ initial begin: p_test
                 join_any
                 disable fork;
                 if (input_done) break;
-                test_pkg::check( "req_nxt", req_nxt, ~ack_nxt );
+                test_pkg::check( "req", req, ~ack );
                 if (err) break;
 
                 // check data
@@ -247,7 +272,7 @@ initial begin: p_test
                     repeat(ticks) @(posedge clk);
                     #(HOLD_TIME);
                 end
-                test_pkg::drive("ack_nxt", ack_nxt, req_nxt);
+                test_pkg::drive("ack", ack, req);
             end
 
             // check we received all generated data
@@ -260,22 +285,27 @@ initial begin: p_test
     join
 
 
-    // Testcase: Reset test
-    // --------------------
+    // Testcase: tc_reset (Reset test)
+    // -------------------------------
     repeat(10) @(posedge clk);
     test_pkg::header( "tc_reset" );
 
-    // make `ack` and `req_nxt` outputs change to a non-reset value
-    if (req_nxt !== 1'b1) begin
+    // make `rdy` and `req` outputs change to a non-reset value
+    if (req !== 1'b1) begin
         @(posedge clk);
         #(HOLD_TIME);
-        test_pkg::drive("req", req, ~req);
+        test_pkg::drive("vld", vld, 1'b1);
 
         repeat(1) @(posedge clk);
-        #(CTO_TIME);
+        fork
+            #(CTO_TIME);
+            begin
+                test_pkg::drive("vld", vld, 1'b0);
+            end
+        join
     end
-    test_pkg::check("ack", ack, req);
-    test_pkg::check("req_nxt", req_nxt, req);
+    test_pkg::check("rdy", rdy, 1'b0);
+    test_pkg::check("req", req, 1'b1);
 
     // stop clocks
     test_done = 1'b1;
@@ -287,12 +317,13 @@ initial begin: p_test
     #(CTO_TIME);
 
     // check outputs changed to reset value
-    err = test_pkg::check( "ack", ack, 1'b0);
-    err = test_pkg::check("req_nxt", req_nxt, 1'b0);
-
+    err = test_pkg::check("rdy", rdy, 1'b1);
+    err = test_pkg::check("req", req, 1'b0);
 
     // end of the test
+    #(CLK_PERIOD);
+    test_done = 1'b1;
    $display("============\nTest finished\n============");
 end: p_test
 
-endmodule: tb_reqack_tph_pipe_stage
+endmodule: tb_rdyval2reqack_tph
