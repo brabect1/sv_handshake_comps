@@ -67,6 +67,9 @@ logic req_i;
 // Flopped version of `rdy_i` used for fall detection.
 logic req_d;
 
+// Indicates accepting a new request
+logic req_accept;
+
 
 if (INCLUDE_CDC) begin: g_cdc
     logic [1:0] cdc_sync_req;
@@ -84,26 +87,34 @@ else begin: g_no_cdc
 end: g_no_cdc
 
 
-// Implements a delay flop for fall detection.
+// Implements a delay flop for REQ change detection.
 always_ff @(posedge clk or negedge rst_n) begin: p_req_d
-    if (!rst_n) req_d <= 1'b0;
-    else        req_d <= req_i;
+    if (!rst_n)          req_d <= 1'b0;
+    else if (req_accept) req_d <= req_i;
 end: p_req_d
 
 assign req_chg = req_d ^ req_i;
+assign req_accept = req_chg & (~vld | rdy);
 
-assign vld = ~(req_d ^ ack);
+// Implements the VLD signalling on the output side
+always_ff @(posedge clk or negedge rst_n) begin: p_vld
+    if (!rst_n) vld <= 1'b0;
+    else begin
+        if (req_accept)     vld <= 1'b1;
+        else if (vld & rdy) vld <= 1'b0;
+    end
+end: p_vld
 
 // Implements the Acknowledge part of the input handshake interface. 
 always_ff @(posedge clk or negedge rst_n) begin: p_ack
     if (!rst_n)       ack <= 1'b0;
-    else if (req_chg) ack <= ~ack;
+    else if (req_accept) ack <= ~ack;
 end: p_ack
 
 // Implements the data buffer flop. It is factored into a separate process as
 // we do not need to have the reset for data path flops.
 always_ff @(posedge clk) begin: p_data
-    if (req_chg)  o_dat <= i_dat;
+    if (req_accept)  o_dat <= i_dat;
 end: p_data
 
 endmodule: reqack_tph2rdyval
