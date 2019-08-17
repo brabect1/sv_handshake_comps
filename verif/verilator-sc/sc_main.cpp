@@ -35,7 +35,9 @@ int sc_main(int argc, char **argv) {
     tracer.dumpEvent(clk);
 
     //Run the Simulation for "200 nanosecnds"
-    sc_start(200,SC_NS);
+    std::cout << "-- started" << std::endl;
+    sc_start(300,SC_NS);
+    std::cout << "-- finished" << std::endl;
 
     delete dut;
     return(0);

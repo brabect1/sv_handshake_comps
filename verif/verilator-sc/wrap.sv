@@ -32,6 +32,15 @@ logic sixth_req;
 logic sixth_ack;
 int   sixth_dat;
 logic seventh_vld;
+logic seventh_rdy;
+int   seventh_dat;
+logic eighth_req;
+logic eighth_ack;
+int   eighth_dat;
+logic nineth_req;
+logic nineth_ack;
+int   nineth_dat;
+logic push_vld;
 
 assign pull_pop = first_rdy & pull_rdy;
 
@@ -107,12 +116,51 @@ reqack2rdyval #(.DWIDTH(32)) u_sixth (
     .i_dat  (sixth_dat),
     //---output---
     .vld    (seventh_vld),
+    .rdy    (seventh_rdy),
+    .o_dat  (seventh_dat),
+    //---others---
+    .*
+);
+
+rdyval2reqack_tph #(.DWIDTH(32)) u_seventh (
+    //---input---
+    .vld    (seventh_vld),
+    .rdy    (seventh_rdy),
+    .i_dat  (seventh_dat),
+    //---output---
+    .req    (eighth_req),
+    .ack    (eighth_ack),
+    .o_dat  (eighth_dat),
+    //---others---
+    .*
+);
+
+reqack_tph_pipe_stage #(.DWIDTH(32)) u_eighth (
+    //---input---
+    .req    (eighth_req),
+    .ack    (eighth_ack),
+    .i_dat  (eighth_dat),
+    //---output---
+    .req_nxt(nineth_req),
+    .ack_nxt(nineth_ack),
+    .o_dat  (nineth_dat),
+    //---others---
+    .*
+);
+
+reqack_tph2rdyval #(.DWIDTH(32)) u_nineth (
+    //---input---
+    .req    (nineth_req),
+    .ack    (nineth_ack),
+    .i_dat  (nineth_dat),
+    //---output---
+    .vld    (push_vld),
     .rdy    (push_rdy),
     .o_dat  (push_dat),
     //---others---
     .*
 );
 
-assign push_push = push_rdy & seventh_vld;
+assign push_push = push_rdy & push_vld;
 
 endmodule: wrap
