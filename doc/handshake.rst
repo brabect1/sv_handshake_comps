@@ -74,21 +74,30 @@ responds with acknowledging the transfer. Here the consumer reacts only in
 response to the producer. Also, the state of the *Request* and *Acknowledge*
 remains stable until the other side reacts.
 
-Hence the Request--Acknowledge scheme can be used as a *two phase* or a
-*four phase* handshake. In a two phase scheme, a transition on Request represents
+Hence the Request--Acknowledge scheme can be used as a *two-phase* or a
+*four-phase* handshake. In a two-phase scheme, a transition on Request represents
 the first phase and transition on Acknowledge represents the second phase. In
-the four phase handshake, each logic combination of the two signals represents
+the four-phase handshake, each logic combination of the two signals represents
 one phase.
 
-![req_ack_phases](png/req_ack_phases.png)
+.. figure:: png/req_ack_phases.png
 
-The circuit below shows an example of a pipeline stage for the four phase
+   Comparing phases of a two-phase and a four-phase handshake.
+
+The circuit below shows an example of a pipeline stage for the four-phase
 handshake. Again, each of the output control signals originates from a flop
 to split signal paths going through the pipeline stage.
 
 .. figure:: png/reqack_pipe_stage.png
 
    Pipeline stage of a four-phase Request--Acknowledge handshake.
+
+Compare it to a two-phase handshake on the next figure. The two-phase protocol
+circuit comes smaller (i.e. less flops) and faster (i.e. less cycles).
+
+.. figure:: png/reqack_tph_pipe_stage.png
+
+   Pipeline stage of a two-phase Request--Acknowledge handshake.
 
 Comparing the Schemes
 ---------------------
@@ -109,17 +118,15 @@ scheme is more a *push* type protocol.
 Converting the Schemes
 ----------------------
 
-Due to their different properties, designers may choose to combine both schemes
-in the design and hence would need to convert from one to the other. The following
-circuits provide such conversion.
+Due to their different properties, designers may choose to combine both
+schemes in the design and hence would need to convert from one to the other.
+The following circuits provide a conversion between Ready--Valid and
+a four-phase Request--Acknowledge.
 
-.. figure:: png/rdyval2reqack.png
+|rdyval2reqack| |reqack2rdyval|
 
-   Conversion from a Ready--Valid handshake to a four-phase Request-Acknowledge handshake.
-
-.. figure:: png/reqack2rdyval.png
-
-   Conversion from a four-phase Request-Acknowledge handshake to a Ready--Valid handshake.
+.. |rdyval2reqack| image:: png/rdyval2reqack.png
+.. |reqack2rdyval| image:: png/reqack2rdyval.png
 
 Variances
 ---------
@@ -148,7 +155,7 @@ Note that the pull type and push type pipeline stages cannot be combined.
 Request--Acknowledge Strobe Handshake
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A variant of a two phase Request--Acknowledge handshake is a form where both
+A variant of a two-phase Request--Acknowledge handshake is a form where both
 the request and acknowledge events are represented by single cycle strobes.
 This for may be useful for producers and consumers in the same clock domain
 and also may prove a bit simpler when directly interfacing to a finite state
