@@ -87,6 +87,7 @@ end: p_clk_gen
 
 // Test
 initial begin: p_test
+    bit ign;
     bit err;
     $timeformat(-9, 5, " ns", 10);
 
@@ -102,8 +103,8 @@ initial begin: p_test
     repeat (2) @(posedge clk);
 
     // check expected outputs
-    err = test_pkg::check( "ack", ack, 1'b0);
-    err = test_pkg::check("req_nxt", req_nxt, 1'b0);
+    ign = test_pkg::check( "ack", ack, 1'b0);
+    ign = test_pkg::check("req_nxt", req_nxt, 1'b0);
 
     // Remove reset
     // ------------
@@ -113,8 +114,8 @@ initial begin: p_test
     repeat (2) @(posedge clk);
 
     // check expected outputs
-    test_pkg::check( "ack", ack, 1'b0);
-    test_pkg::check("req_nxt", req_nxt, 1'b0);
+    ign = test_pkg::check( "ack", ack, 1'b0);
+    ign = test_pkg::check("req_nxt", req_nxt, 1'b0);
 
     // In this test case we do handshake on the input interface,
     // then complete the handshake on the output interface. This
@@ -138,9 +139,9 @@ initial begin: p_test
             repeat(1) @(posedge clk);
             tstamp = $realtime;
             #(CTO_TIME);
-            test_pkg::check("ack", ack, req);
-            test_pkg::check("req_nxt", req_nxt, req);
-            check_data("o_dat", o_dat, data);
+            ign = test_pkg::check("ack", ack, req);
+            ign = test_pkg::check("req_nxt", req_nxt, req);
+            ign = check_data("o_dat", o_dat, data);
         end
 
         // complete the handshake on the output side
@@ -173,8 +174,6 @@ initial begin: p_test
             bit err;
 
             // make sure there is no pending request at the input
-//            err = test_pkg::check( "ack", ack, req );
-//            $display(">>>> ret=%0b", err);
             assert( test_pkg::check( "ack", ack, req ) );
             @(posedge clk);
 
@@ -200,7 +199,7 @@ initial begin: p_test
                     end
                 join_any
                 disable fork;
-                test_pkg::check( "ack", ack, req );
+                ign = test_pkg::check( "ack", ack, req );
                 if (err) break;
             end
 
@@ -227,7 +226,7 @@ initial begin: p_test
                 join_any
                 disable fork;
                 if (input_done) break;
-                test_pkg::check( "req_nxt", req_nxt, ~ack_nxt );
+                ign = test_pkg::check( "req_nxt", req_nxt, ~ack_nxt );
                 if (err) break;
 
                 // check data
@@ -237,7 +236,7 @@ initial begin: p_test
                 end
                 else begin
                     data = scoreBoard.pop_front();
-                    check_data("o_dat", o_dat, data);
+                    ign = check_data("o_dat", o_dat, data);
                 end
                 smScoreBoard.put();
 
@@ -274,8 +273,8 @@ initial begin: p_test
         repeat(1) @(posedge clk);
         #(CTO_TIME);
     end
-    test_pkg::check("ack", ack, req);
-    test_pkg::check("req_nxt", req_nxt, req);
+    ign = test_pkg::check("ack", ack, req);
+    ign = test_pkg::check("req_nxt", req_nxt, req);
 
     // stop clocks
     test_done = 1'b1;
@@ -287,8 +286,8 @@ initial begin: p_test
     #(CTO_TIME);
 
     // check outputs changed to reset value
-    err = test_pkg::check( "ack", ack, 1'b0);
-    err = test_pkg::check("req_nxt", req_nxt, 1'b0);
+    ign = test_pkg::check( "ack", ack, 1'b0);
+    ign = test_pkg::check("req_nxt", req_nxt, 1'b0);
 
 
     // end of the test

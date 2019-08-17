@@ -84,6 +84,7 @@ end: p_clk_gen
 // Test
 initial begin: p_test
     bit err;
+    bit ign;
     $timeformat(-9, 5, " ns", 10);
 
     // start of the test
@@ -98,8 +99,8 @@ initial begin: p_test
     repeat (2) @(posedge clk);
 
     // check expected outputs
-    err = test_pkg::check( "rdy", rdy, 1'b1);
-    err = test_pkg::check( "req", req, 1'b0);
+    ign = test_pkg::check( "rdy", rdy, 1'b1);
+    ign = test_pkg::check( "req", req, 1'b0);
 
     // Remove reset
     // ------------
@@ -109,8 +110,8 @@ initial begin: p_test
     repeat (2) @(posedge clk);
 
     // check expected outputs
-    err = test_pkg::check( "rdy", rdy, 1'b1);
-    err = test_pkg::check( "req", req, 1'b0);
+    ign = test_pkg::check( "rdy", rdy, 1'b1);
+    ign = test_pkg::check( "req", req, 1'b0);
 
     // Testcase: tc_handshake
     // ----------------------
@@ -138,9 +139,9 @@ initial begin: p_test
             fork
                 begin
                     #(CTO_TIME);
-                    test_pkg::check("rdy", rdy, 1'b0);
-                    test_pkg::check("req", req, ~ack);
-                    check_data("o_dat", o_dat, data);
+                    ign = test_pkg::check("rdy", rdy, 1'b0);
+                    ign = test_pkg::check("req", req, ~ack);
+                    ign = check_data("o_dat", o_dat, data);
                 end
                 begin
                     #(HOLD_TIME);
@@ -155,8 +156,8 @@ initial begin: p_test
             test_pkg::drive("ack", ack, ~ack);
             @(posedge clk);
             #(CTO_TIME);
-            test_pkg::check("req", req, ack);
-            test_pkg::check("rdy", rdy, 1'b1);
+            ign = test_pkg::check("req", req, ack);
+            ign = test_pkg::check("rdy", rdy, 1'b1);
         end
 
     end
@@ -212,6 +213,7 @@ initial begin: p_test
                 #(CTO_TIME);
 
                 // wait for next RDY
+                err = 0;
                 fork
                     if (rdy !== 1'b1) @(rdy iff rdy === 1'b1);
                     begin
@@ -220,7 +222,7 @@ initial begin: p_test
                     end
                 join_any
                 disable fork;
-                test_pkg::check( "rdy", rdy, 1'b1);
+                ign = test_pkg::check( "rdy", rdy, 1'b1);
                 if (err) break;
 
                 // wait long enough so that potential VLD assertion
@@ -252,7 +254,7 @@ initial begin: p_test
                 join_any
                 disable fork;
                 if (input_done) break;
-                test_pkg::check( "req", req, ~ack );
+                ign = test_pkg::check( "req", req, ~ack );
                 if (err) break;
 
                 // check data
@@ -262,7 +264,7 @@ initial begin: p_test
                 end
                 else begin
                     data = scoreBoard.pop_front();
-                    check_data("o_dat", o_dat, data);
+                    ign = check_data("o_dat", o_dat, data);
                 end
                 smScoreBoard.put();
 
@@ -304,8 +306,8 @@ initial begin: p_test
             end
         join
     end
-    test_pkg::check("rdy", rdy, 1'b0);
-    test_pkg::check("req", req, 1'b1);
+    ign = test_pkg::check("rdy", rdy, 1'b0);
+    ign = test_pkg::check("req", req, 1'b1);
 
     // stop clocks
     test_done = 1'b1;
@@ -317,8 +319,8 @@ initial begin: p_test
     #(CTO_TIME);
 
     // check outputs changed to reset value
-    err = test_pkg::check("rdy", rdy, 1'b1);
-    err = test_pkg::check("req", req, 1'b0);
+    ign = test_pkg::check("rdy", rdy, 1'b1);
+    ign = test_pkg::check("req", req, 1'b0);
 
     // end of the test
     #(CLK_PERIOD);

@@ -16,7 +16,7 @@ package test_pkg;
 
 
     // Xilinx Vivado simulator seems to have problem with `function automatic`
-    function /*automatic*/ bit check(
+    function bit check(
             input string name,
             input logic sig,
             input logic val,
@@ -32,10 +32,8 @@ package test_pkg;
                 $error("%0t: %0s value check: exp=%0b, act=%0b", $realtime, name, val, sig);
             end
         end
-        //return pass;
-        check = pass;
+        return pass;
     endfunction: check
-
 
     // blocking
     task automatic drive(

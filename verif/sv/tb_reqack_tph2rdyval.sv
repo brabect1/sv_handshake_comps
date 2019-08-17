@@ -83,6 +83,7 @@ end: p_clk_gen
 
 // Test
 initial begin: p_test
+    bit ign;
     bit err;
     $timeformat(-9, 5, " ns", 10);
 
@@ -98,8 +99,8 @@ initial begin: p_test
     repeat (2) @(posedge clk);
 
     // check expected outputs
-    err = test_pkg::check("ack", ack, 1'b0);
-    err = test_pkg::check("vld", vld, 1'b0);
+    ign = test_pkg::check("ack", ack, 1'b0);
+    ign = test_pkg::check("vld", vld, 1'b0);
 
     // Remove reset
     // ------------
@@ -109,8 +110,8 @@ initial begin: p_test
     repeat (2) @(posedge clk);
 
     // check expected outputs
-    err = test_pkg::check("ack", ack, 1'b0);
-    err = test_pkg::check("vld", vld, 1'b0);
+    ign = test_pkg::check("ack", ack, 1'b0);
+    ign = test_pkg::check("vld", vld, 1'b0);
 
     // Testcase: tc_handshake
     // ----------------------
@@ -137,9 +138,9 @@ initial begin: p_test
             repeat(1) @(posedge clk);
             tstamp = $realtime;
             #(CTO_TIME);
-            test_pkg::check("ack", ack, req);
-            test_pkg::check("vld", vld, 1'b1);
-            check_data("o_dat", o_dat, data);
+            ign = test_pkg::check("ack", ack, req);
+            ign = test_pkg::check("vld", vld, 1'b1);
+            ign = check_data("o_dat", o_dat, data);
         end
 
         // complete the handshake on the output side
@@ -147,7 +148,7 @@ initial begin: p_test
         if (vld === 1'b1) begin
             @(posedge clk);
             #(CTO_TIME);
-            test_pkg::check("vld", vld, 1'b0);
+            ign = test_pkg::check("vld", vld, 1'b0);
         end
 
     end
@@ -197,7 +198,7 @@ initial begin: p_test
                     end
                 join_any
                 disable fork;
-                test_pkg::check( "ack", ack, req );
+                ign = test_pkg::check( "ack", ack, req );
                 if (err) break;
             end
 
@@ -224,7 +225,7 @@ initial begin: p_test
                 join_any
                 disable fork;
                 if (err && input_done) break; // input done and VLD timeout
-                test_pkg::check( "vld", vld, 1'b1 );
+                ign = test_pkg::check( "vld", vld, 1'b1 );
                 if (err) break;
 
                 // check data
@@ -234,7 +235,7 @@ initial begin: p_test
                 end
                 else begin
                     data = scoreBoard.pop_front();
-                    check_data("o_dat", o_dat, data);
+                    ign = check_data("o_dat", o_dat, data);
                 end
                 smScoreBoard.put();
 
@@ -284,7 +285,7 @@ initial begin: p_test
             repeat(1) @(posedge clk);
             tstamp = $realtime;
             #(CTO_TIME);
-            test_pkg::check("ack", ack, 1'b0);
+            ign = test_pkg::check("ack", ack, 1'b0);
         end
         tstamp = HOLD_TIME - ($realtime - tstamp);
         if (tstamp > 0ns) #(tstamp);
@@ -293,8 +294,8 @@ initial begin: p_test
         repeat(1) @(posedge clk);
         #(CTO_TIME);
 
-        test_pkg::check("ack", ack, 1'b1);
-        test_pkg::check("vld", vld, 1'b1);
+        ign = test_pkg::check("ack", ack, 1'b1);
+        ign = test_pkg::check("vld", vld, 1'b1);
 
         // stop clocks
         test_done = 1'b1;
@@ -306,8 +307,8 @@ initial begin: p_test
         #(CTO_TIME);
 
         // check outputs changed to reset value
-        err = test_pkg::check("ack", ack, 1'b0);
-        err = test_pkg::check("vld", vld, 1'b0);
+        ign = test_pkg::check("ack", ack, 1'b0);
+        ign = test_pkg::check("vld", vld, 1'b0);
     end
 
 
